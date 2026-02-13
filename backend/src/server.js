@@ -20,8 +20,10 @@ const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true },
+  cors: { origin: true, credentials: true },
   path: '/socket.io',
+  transports: ['polling', 'websocket'],
+  allowEIO3: true,
 });
 
 io.use(async (socket, next) => {

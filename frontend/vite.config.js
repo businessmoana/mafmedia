@@ -4,17 +4,19 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 8080,
+    port: 9000,
     host: true, // allow ngrok/network access
-    allowedHosts: ['.ngrok-free.dev', '.ngrok.io', '.ngrok-free.app'],
+    allowedHosts: ['.ngrok-free.dev', '.ngrok.io', '.ngrok-free.app','mafmedia.space/'],
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'https://api.mafmedia.space/',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:3001',
+        target: 'https://api.mafmedia.space/',
+        changeOrigin: true,
         ws: true,
+        secure: true,
       },
     },
   },

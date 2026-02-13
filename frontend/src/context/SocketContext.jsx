@@ -23,6 +23,11 @@ export function SocketProvider({ children }) {
       path: '/socket.io',
       autoConnect: true,
       auth: token ? { token } : undefined,
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
     });
 
     s.on('connect', () => {
