@@ -55,18 +55,33 @@ export async function sendTelegramMessage(chatId, text) {
   if (!BOT_TOKEN || !chatId || !text) return false;
   try {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: Number(chatId),
-        text,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    return !!data?.ok;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: Number(chatId),
+          text,
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+        }),
+        signal: controller.signal,
+      });
+      const data = await res.json().catch(() => ({}));
+      clearTimeout(timeoutId);
+      return !!data?.ok;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('Telegram sendMessage timeout:', chatId);
+      } else {
+        throw fetchError;
+      }
+      return false;
+    }
   } catch (e) {
     console.error('Telegram sendMessage error:', e);
     return false;
@@ -85,7 +100,8 @@ export async function notifyUserIds(pool, userIds, text) {
     'SELECT telegram_user_id FROM users WHERE id IN (?) AND telegram_user_id IS NOT NULL',
     [userIds]
   );
-  for (const row of rows) {
-    await sendTelegramMessage(row.telegram_user_id, text);
-  }
+  // Send notifications in parallel but don't wait for all to complete
+  // This prevents blocking if one notification fails
+  const promises = rows.map(row => sendTelegramMessage(row.telegram_user_id, text));
+  await Promise.allSettled(promises);
 }

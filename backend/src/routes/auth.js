@@ -23,43 +23,35 @@ router.post('/telegram', async (req, res) => {
     const { id: telegramUserId, first_name, last_name, username } = parsed.user;
     const name = [first_name, last_name].filter(Boolean).join(' ').trim() || username || `User ${telegramUserId}`;
 
-    let [rows] = await pool.query(
+    // Use INSERT ... ON DUPLICATE KEY UPDATE to handle race conditions
+    const role = isTelegramAdmin(telegramUserId) ? 'admin' : 'user';
+    const [result] = await pool.query(
+      `INSERT INTO users (name, role, telegram_user_id, active) 
+       VALUES (?, ?, ?, TRUE)
+       ON DUPLICATE KEY UPDATE name = VALUES(name)`,
+      [name, role, String(telegramUserId)]
+    );
+
+    // Fetch the user (either newly created or updated)
+    const [rows] = await pool.query(
       'SELECT id, name, role, telegram_user_id, active FROM users WHERE telegram_user_id = ?',
       [String(telegramUserId)]
     );
 
-    if (rows.length) {
-      const user = rows[0];
-      await pool.query(
-        'UPDATE users SET name = ? WHERE id = ?',
-        [name, user.id]
-      );
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-      return res.json({
-        token,
-        user: { id: user.id, name, role: user.role, telegram_user_id: user.telegram_user_id, active: user.active },
-      });
+    if (!rows.length) {
+      return res.status(500).json({ error: 'Failed to create or find user' });
     }
 
-    const role = isTelegramAdmin(telegramUserId) ? 'admin' : 'user';
-    const [result] = await pool.query(
-      'INSERT INTO users (name, role, telegram_user_id, active) VALUES (?, ?, ?, TRUE)',
-      [name, role, String(telegramUserId)]
-    );
-
+    const user = rows[0];
     const token = jwt.sign(
-      { userId: result.insertId },
+      { userId: user.id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({
+    res.status(result.insertId ? 201 : 200).json({
       token,
-      user: { id: result.insertId, name, role, telegram_user_id: String(telegramUserId), active: true },
+      user: { id: user.id, name: user.name, role: user.role, telegram_user_id: user.telegram_user_id, active: user.active },
     });
   } catch (err) {
     const mysqlMsg = err?.sqlMessage ?? err?.message;
