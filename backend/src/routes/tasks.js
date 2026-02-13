@@ -122,11 +122,18 @@ router.post('/', async (req, res) => {
         'INSERT INTO task_assignments (task_id, user_id) VALUES ?',
         [values]
       );
-      await notifyUserIds(
-        pool,
-        ids,
-        '📋 <b>New task added.</b>\n\nOpen the app to view.'
-      );
+      // Send notifications to assigned users
+      try {
+        const taskTitle = title.slice(0, 80);
+        await notifyUserIds(
+          pool,
+          ids,
+          `📋 <b>New task: "${taskTitle}"</b>\n\nOpen the app to view.`
+        );
+      } catch (notifyErr) {
+        // Log notification errors but don't fail task creation
+        console.error('Failed to send task creation notifications:', notifyErr);
+      }
     }
 
     const [task] = await pool.query(

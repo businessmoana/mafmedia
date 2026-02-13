@@ -101,13 +101,34 @@ export async function sendTelegramMessage(chatId, text) {
  * @param {string} text
  */
 export async function notifyUserIds(pool, userIds, text) {
-  if (!userIds?.length || !text) return;
-  const [rows] = await pool.query(
-    'SELECT telegram_user_id FROM users WHERE id IN (?) AND telegram_user_id IS NOT NULL',
-    [userIds]
-  );
-  // Send notifications in parallel but don't wait for all to complete
-  // This prevents blocking if one notification fails
-  const promises = rows.map(row => sendTelegramMessage(row.telegram_user_id, text));
-  await Promise.allSettled(promises);
+  if (!userIds?.length || !text) {
+    console.warn('notifyUserIds: missing userIds or text', { userIds, hasText: !!text });
+    return;
+  }
+  try {
+    const [rows] = await pool.query(
+      'SELECT telegram_user_id FROM users WHERE id IN (?) AND telegram_user_id IS NOT NULL AND active = 1',
+      [userIds]
+    );
+    if (!rows.length) {
+      console.warn('notifyUserIds: no users found with telegram_user_id', { userIds });
+      return;
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`notifyUserIds: sending to ${rows.length} user(s)`, { 
+        telegramIds: rows.map(r => r.telegram_user_id) 
+      });
+    }
+    // Send notifications in parallel but don't wait for all to complete
+    // This prevents blocking if one notification fails
+    const promises = rows.map(row => sendTelegramMessage(row.telegram_user_id, text));
+    const results = await Promise.allSettled(promises);
+    const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value));
+    if (failed.length && process.env.NODE_ENV !== 'production') {
+      console.warn(`notifyUserIds: ${failed.length} notification(s) failed`);
+    }
+  } catch (err) {
+    console.error('notifyUserIds error:', err);
+    throw err;
+  }
 }
