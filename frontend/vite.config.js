@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     port: 9000,
     host: true, // allow ngrok/network access
-    allowedHosts: ['.ngrok-free.dev', '.ngrok.io', '.ngrok-free.app','mafmedia.space/'],
+    allowedHosts: ['.ngrok-free.dev', '.ngrok.io', '.ngrok-free.app','app.mafmedia.space'],
     proxy: {
       '/api': {
         target: 'https://api.mafmedia.space/',
