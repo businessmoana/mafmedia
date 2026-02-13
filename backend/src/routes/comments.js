@@ -152,7 +152,7 @@ router.post('/', async (req, res) => {
           await notifyUserIds(
             pool,
             adminIds,
-            `New comment on "${title}"\nFrom "${userName}"\nOpen the app to review`
+            `💬 New comment on "${title}"\nFrom "${userName}"\nOpen the app to review`
           );
         }
       }
