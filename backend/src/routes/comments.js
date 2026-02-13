@@ -148,11 +148,11 @@ router.post('/', async (req, res) => {
         if (adminIds.length) {
           const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
           const title = (taskRow[0]?.title || 'Task').slice(0, 80);
-          const preview = body.trim().slice(0, 80) + (body.trim().length > 80 ? '…' : '');
+          const userName = req.user.name || 'User';
           await notifyUserIds(
             pool,
             adminIds,
-            `💬 <b>New comment on \"${title}\"</b>\n\n${preview}\n\nOpen the app to review.`
+            `New comment on "${title}"\nFrom "${userName}"\nOpen the app to review`
           );
         }
       }
