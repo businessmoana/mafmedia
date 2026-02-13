@@ -106,26 +106,36 @@ export async function notifyUserIds(pool, userIds, text) {
     return;
   }
   try {
+    // MySQL requires placeholders for each value in IN clause
+    const placeholders = userIds.map(() => '?').join(',');
     const [rows] = await pool.query(
-      'SELECT telegram_user_id FROM users WHERE id IN (?) AND telegram_user_id IS NOT NULL AND active = 1',
-      [userIds]
+      `SELECT telegram_user_id FROM users WHERE id IN (${placeholders}) AND telegram_user_id IS NOT NULL AND active = 1`,
+      userIds
     );
     if (!rows.length) {
       console.warn('notifyUserIds: no users found with telegram_user_id', { userIds });
       return;
     }
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`notifyUserIds: sending to ${rows.length} user(s)`, { 
-        telegramIds: rows.map(r => r.telegram_user_id) 
-      });
-    }
+    console.log(`notifyUserIds: sending to ${rows.length} user(s)`, { 
+      telegramIds: rows.map(r => r.telegram_user_id),
+      userIds 
+    });
     // Send notifications in parallel but don't wait for all to complete
     // This prevents blocking if one notification fails
     const promises = rows.map(row => sendTelegramMessage(row.telegram_user_id, text));
     const results = await Promise.allSettled(promises);
     const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value));
-    if (failed.length && process.env.NODE_ENV !== 'production') {
-      console.warn(`notifyUserIds: ${failed.length} notification(s) failed`);
+    if (failed.length) {
+      console.warn(`notifyUserIds: ${failed.length} notification(s) failed out of ${results.length}`);
+      failed.forEach((result, idx) => {
+        if (result.status === 'rejected') {
+          console.error(`Notification ${idx} failed:`, result.reason);
+        } else if (result.status === 'fulfilled' && !result.value) {
+          console.warn(`Notification ${idx} returned false (likely Telegram API error)`);
+        }
+      });
+    } else {
+      console.log(`notifyUserIds: all ${results.length} notification(s) sent successfully`);
     }
   } catch (err) {
     console.error('notifyUserIds error:', err);

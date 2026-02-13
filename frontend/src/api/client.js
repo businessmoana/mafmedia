@@ -41,6 +41,11 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ active }),
       }),
+    setRole: (id, role) =>
+      request(`/users/${id}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
   },
   tasks: {
     list: () => request('/tasks'),

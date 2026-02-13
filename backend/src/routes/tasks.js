@@ -125,6 +125,7 @@ router.post('/', async (req, res) => {
       // Send notifications to assigned users
       try {
         const taskTitle = title.slice(0, 80);
+        console.log(`Task created: "${taskTitle}", notifying ${ids.length} user(s):`, ids);
         await notifyUserIds(
           pool,
           ids,

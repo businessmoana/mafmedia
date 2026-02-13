@@ -39,4 +39,41 @@ router.patch('/:id/active', async (req, res) => {
   }
 });
 
+// Admin: set user role (admin or user)
+router.patch('/:id/role', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    if (role !== 'admin' && role !== 'user') {
+      return res.status(400).json({ error: 'role must be "admin" or "user"' });
+    }
+    const targetId = Number(id);
+    // Prevent changing your own role
+    if (targetId === req.user.id) {
+      return res.status(400).json({ error: 'You cannot change your own role' });
+    }
+    const [existing] = await pool.query('SELECT id, role FROM users WHERE id = ?', [id]);
+    if (!existing.length) return res.status(404).json({ error: 'User not found' });
+    const currentRole = existing[0].role;
+    if (currentRole === role) {
+      return res.json({ success: true });
+    }
+    // When demoting to user, ensure at least one admin remains
+    if (role === 'user') {
+      const [adminCount] = await pool.query(
+        "SELECT COUNT(*) as n FROM users WHERE role = 'admin' AND id != ?",
+        [id]
+      );
+      if ((adminCount[0]?.n || 0) < 1) {
+        return res.status(400).json({ error: 'At least one admin must remain' });
+      }
+    }
+    await pool.query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
+});
+
 export default router;

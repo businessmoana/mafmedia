@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function Users() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,8 +41,21 @@ export default function Users() {
       setUsers((prev) =>
         prev.map((x) => (x.id === u.id ? { ...x, active: !u.active } : x))
       );
+      setError('');
     } catch (e) {
-      // Simple surface: set error so table shows message instead of silently failing
+      setError(e.message);
+    }
+  };
+
+  const setRole = async (u, newRole) => {
+    if (u.id === currentUser?.id) return;
+    try {
+      await api.users.setRole(u.id, newRole);
+      setUsers((prev) =>
+        prev.map((x) => (x.id === u.id ? { ...x, role: newRole } : x))
+      );
+      setError('');
+    } catch (e) {
       setError(e.message);
     }
   };
@@ -80,9 +95,20 @@ export default function Users() {
                     </span>
                   </td>
                   <td className="py-4 px-4 sm:px-6">
-                    <span className="inline-flex items-center rounded-lg bg-brand-500/15 px-2.5 py-1 text-xs font-medium text-brand-400 ring-1 ring-brand-500/20">
-                      Admin
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-lg bg-brand-500/15 px-2.5 py-1 text-xs font-medium text-brand-400 ring-1 ring-brand-500/20">
+                        Admin
+                      </span>
+                      {u.id !== currentUser?.id && admins.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setRole(u, 'user')}
+                          className="rounded-lg border border-slate-600 px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                        >
+                          Make user
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -102,10 +128,17 @@ export default function Users() {
                     </span>
                   </td>
                   <td className="py-4 px-4 sm:px-6">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="inline-flex items-center rounded-lg bg-slate-700/50 px-2.5 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-600">
                         User
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setRole(u, 'admin')}
+                        className="rounded-lg border border-brand-500/50 px-2.5 py-1 text-xs font-medium text-brand-400 hover:text-brand-300 hover:bg-brand-500/10 transition-colors"
+                      >
+                        Make admin
+                      </button>
                       <button
                         type="button"
                         onClick={() => toggleActive(u)}

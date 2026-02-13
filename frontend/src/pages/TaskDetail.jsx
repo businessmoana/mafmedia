@@ -299,7 +299,22 @@ export default function TaskDetail() {
     setSubmitting(true);
     setError('');
     try {
-      await api.comments.add(id, newComment.trim());
+      // If admin and 1 assigned user, auto-reply to their first comment
+      let parentId = null;
+      if (isAdmin && (assignedUsers?.length || 0) === 1) {
+        // Find the first comment by the assigned user
+        const userComment = comments.find(
+          c => c.user_id === assignedUsers[0]?.id && !c.parent_id
+        );
+        if (userComment) {
+          parentId = userComment.id;
+        } else {
+          setError('User must comment first before you can reply');
+          setSubmitting(false);
+          return;
+        }
+      }
+      await api.comments.add(id, newComment.trim(), parentId);
       setNewComment('');
       setError('');
       fetchData();
@@ -722,22 +737,46 @@ export default function TaskDetail() {
           )}
 
           {!task.completed_at && (
-            <form onSubmit={handleAddComment} className="mt-6">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add your comment (e.g. link to published article)..."
-                rows={3}
-                className="w-full rounded-xl bg-slate-800/80 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
-              />
-              <button
-                type="submit"
-                disabled={submitting || !newComment.trim()}
-                className="mt-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-4 text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              >
-                {submitting ? 'Posting...' : 'Post comment'}
-              </button>
-            </form>
+            <>
+              {/* Users can always post comments */}
+              {!isAdmin && (
+                <form onSubmit={handleAddComment} className="mt-6">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Add your comment (e.g. link to published article)..."
+                    rows={3}
+                    className="w-full rounded-xl bg-slate-800/80 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting || !newComment.trim()}
+                    className="mt-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-4 text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  >
+                    {submitting ? 'Posting...' : 'Post comment'}
+                  </button>
+                </form>
+              )}
+              {/* Admin: only show comment form if 1 assigned user (auto-replies to their comment) */}
+              {isAdmin && (assignedUsers?.length || 0) === 1 && (
+                <form onSubmit={handleAddComment} className="mt-6">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder={`Reply to ${assignedUsers[0]?.name || 'user'}...`}
+                    rows={3}
+                    className="w-full rounded-xl bg-slate-800/80 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting || !newComment.trim()}
+                    className="mt-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-4 text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  >
+                    {submitting ? 'Posting...' : 'Send reply'}
+                  </button>
+                </form>
+              )}
+            </>
           )}
         </div>
       </article>
