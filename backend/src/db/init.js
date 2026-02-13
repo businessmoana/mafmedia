@@ -14,6 +14,7 @@ async function init() {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     multipleStatements: true,
+    socketPath: '/var/run/mysqld/mysqld.sock' 
   });
 
   await conn.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME || 'media_crm'} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
