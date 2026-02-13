@@ -76,14 +76,20 @@ export async function sendTelegramMessage(chatId, text) {
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        console.error('Telegram sendMessage timeout:', chatId);
+        // Timeout is expected when Telegram API is slow/unreachable - log as warning, not error
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`Telegram sendMessage timeout for chat ${chatId} (this is normal if API is slow)`);
+        }
       } else {
         throw fetchError;
       }
       return false;
     }
   } catch (e) {
-    console.error('Telegram sendMessage error:', e);
+    // Only log non-timeout errors (network errors, invalid responses, etc.)
+    if (e.name !== 'AbortError') {
+      console.error('Telegram sendMessage error:', e.message || e);
+    }
     return false;
   }
 }
