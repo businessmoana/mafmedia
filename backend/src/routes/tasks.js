@@ -123,18 +123,12 @@ router.post('/', async (req, res) => {
         [values]
       );
       // Send notifications to assigned users
-      try {
-        const taskTitle = title.slice(0, 80);
-        console.log(`Task created: "${taskTitle}", notifying ${ids.length} user(s):`, ids);
-        await notifyUserIds(
-          pool,
-          ids,
-          `📋 <b>New task: "${taskTitle}"</b>\n\nOpen the app to view.`
-        );
-      } catch (notifyErr) {
-        // Log notification errors but don't fail task creation
-        console.error('Failed to send task creation notifications:', notifyErr);
-      }
+      const taskTitle = title.slice(0, 80);
+      notifyUserIds(
+        pool,
+        ids,
+        `📋 <b>New task: "${taskTitle}"</b>\n\nOpen the app to view.`
+      );
     }
 
     const [task] = await pool.query(
@@ -212,15 +206,11 @@ router.patch('/:id', async (req, res) => {
       io.emit('task:detail', { taskId: id });
     }
     if (completedTaskUserIds.length) {
-      try {
-        await notifyUserIds(
-          pool,
-          completedTaskUserIds,
-          `✅ <b>Task completed</b>\n\n${task[0]?.title || 'Task'} has been marked as done.`
-        );
-      } catch (e) {
-        console.error('[Tasks] Task-complete notification error:', e?.message || e);
-      }
+      notifyUserIds(
+        pool,
+        completedTaskUserIds,
+        `✅ <b>Task completed</b>\n\n${task[0]?.title || 'Task'} has been marked as done.`
+      );
     }
     res.json(task[0]);
   } catch (err) {

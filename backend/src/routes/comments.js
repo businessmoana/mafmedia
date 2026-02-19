@@ -144,16 +144,12 @@ router.post('/', async (req, res) => {
 
     // When admin comments/replies, notify the assigned user
     if (req.user.role === 'admin' && repliedToUserId) {
-      try {
-        const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
-        const title = (taskRow[0]?.title || 'Task').slice(0, 80);
-        const message = parentIdVal
-          ? `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
-          : `💬 <b>Admin posted a comment on "${title}" task.</b>\n\nOpen the app to view.`;
-        await notifyUserIds(pool, [repliedToUserId], message);
-      } catch (e) {
-        console.error('[Comments] Admin comment notification error:', e?.message || e);
-      }
+      const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
+      const title = (taskRow[0]?.title || 'Task').slice(0, 80);
+      const message = parentIdVal
+        ? `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
+        : `💬 <b>Admin posted a comment on "${title}" task.</b>\n\nOpen the app to view.`;
+      notifyUserIds(pool, [repliedToUserId], message);
     }
 
     res.status(201).json(comment[0]);
