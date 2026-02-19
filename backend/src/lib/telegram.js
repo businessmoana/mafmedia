@@ -49,9 +49,9 @@ export function isTelegramAdmin(telegramUserId) {
 
 /**
  * Send a Telegram message to a user.
- * Returns true if sent successfully, false otherwise.
+ * Retries once on failure. Returns true if sent successfully, false otherwise.
  */
-export async function sendTelegramMessage(chatId, text) {
+export async function sendTelegramMessage(chatId, text, retry = true) {
   if (!BOT_TOKEN || !chatId || !text) return false;
   
   // Skip dev-admin
@@ -60,30 +60,51 @@ export async function sendTelegramMessage(chatId, text) {
   const numChatId = Number(chatId);
   if (!Number.isFinite(numChatId) || numChatId === 0) return false;
 
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: numChatId,
-        text: String(text),
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
-    });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: numChatId,
+          text: String(text),
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+        }),
+      });
 
-    const data = await res.json().catch(() => ({}));
-    
-    if (data?.ok) {
-      return true;
+      const data = await res.json().catch(() => ({}));
+      
+      if (data?.ok) {
+        return true;
+      }
+      
+      // Rate limit - wait and retry
+      if (data?.error_code === 429 && retry && attempt === 0) {
+        const waitSeconds = data?.parameters?.retry_after || 2;
+        await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+        continue;
+      }
+      
+      // Other errors - don't retry
+      if (attempt === 0 && retry) {
+        // Wait 1 second before retry for transient errors
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      
+      return false;
+    } catch (err) {
+      // Network error - retry once if first attempt
+      if (attempt === 0 && retry) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      return false;
     }
-    
-    console.warn('[Telegram] Failed to send:', data?.description || data?.error_code);
-    return false;
-  } catch (err) {
-    console.error('[Telegram] Error sending message:', err.message || err);
-    return false;
   }
+  
+  return false;
 }
 
 /**
@@ -107,8 +128,14 @@ export async function notifyUserIds(pool, userIds, text) {
 
     if (!rows.length) return;
 
-    const promises = rows.map((row) => sendTelegramMessage(row.telegram_user_id, text));
-    await Promise.allSettled(promises);
+    // Send with small delay between users to avoid rate limits
+    for (const row of rows) {
+      await sendTelegramMessage(row.telegram_user_id, text);
+      // Small delay between sends (except last one)
+      if (row !== rows[rows.length - 1]) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
   } catch (err) {
     console.error('[Telegram] notifyUserIds error:', err.message || err);
   }
