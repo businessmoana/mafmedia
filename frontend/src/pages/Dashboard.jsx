@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { api } from '../api/client';
+import { Linkify } from '../components/Linkify';
 
 function formatDate(str) {
   const d = new Date(str);
@@ -148,7 +149,9 @@ export default function Dashboard() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1.5 text-slate-500 text-sm line-clamp-2">{task.content_body}</p>
+                    <p className="mt-1.5 text-slate-500 text-sm line-clamp-2">
+                    <Linkify text={task.content_body} />
+                  </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {task.completed_at && (
                         <span className="inline-flex items-center rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">

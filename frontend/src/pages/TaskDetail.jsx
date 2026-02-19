@@ -3,33 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { api } from '../api/client';
+import { Linkify } from '../components/Linkify';
 
 function formatDateTime(str) {
   return new Date(str).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function Linkify({ text }) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  return (
-    <>
-      {parts.map((part, i) =>
-        part.match(urlRegex) ? (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-brand-600 hover:text-brand-700 underline break-all"
-          >
-            {part}
-          </a>
-        ) : (
-          part
-        )
-      )}
-    </>
-  );
 }
 
 function CommentItem({
@@ -669,7 +646,9 @@ export default function TaskDetail() {
                   )}
                 </div>
               </div>
-              <p className="mt-3 text-slate-700 whitespace-pre-wrap">{task.content_body}</p>
+              <p className="mt-3 text-slate-700 whitespace-pre-wrap">
+                <Linkify text={task.content_body} />
+              </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="text-slate-500 text-sm">{formatDateTime(task.created_at)}</span>
                 {task.completed_at && (
