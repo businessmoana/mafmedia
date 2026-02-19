@@ -43,8 +43,17 @@
 
 - **No notifications at all**  
   - Check `.env`: `TELEGRAM_BOT_TOKEN` set and correct.  
-  - Restart server; on startup it logs whether Telegram is enabled.  
+  - Restart server; on startup it logs whether Telegram is enabled and runs a connection test.  
   - Check server logs for `[Telegram]` warnings (e.g. “no sendable users”, “sendMessage failed”).
+
+- **“fetch failed” / Network errors**  
+  If you see `[Telegram] sendMessage error: fetch failed` or connection test failures:
+  - **Check internet connectivity**: Server must be able to reach `api.telegram.org` (port 443 HTTPS).
+  - **Firewall/proxy**: Ensure outbound HTTPS to `api.telegram.org` is allowed. If behind a proxy, configure Node.js HTTP agent or environment variables (`HTTP_PROXY`, `HTTPS_PROXY`).
+  - **DNS**: Verify `api.telegram.org` resolves: `nslookup api.telegram.org` or `ping api.telegram.org`.
+  - **Docker/containers**: If running in Docker, ensure the container has network access. Check `docker run --network` or `docker-compose` network settings.
+  - **VPN/Geo-restrictions**: Some networks block Telegram API. Try from a different network or use a VPN.
+  - Check logs for error codes: `ENOTFOUND` (DNS), `ECONNREFUSED` (connection refused), `ETIMEDOUT` (timeout).
 
 - **“Bot can't initiate conversation with a user”**  
   The user has not started the bot. They must open the app from the Telegram bot (menu/link/button). After that, we send one welcome message; then future notifications work even when the app is closed.  

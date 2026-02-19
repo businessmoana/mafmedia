@@ -9,6 +9,30 @@ const ADMIN_IDS = (process.env.TELEGRAM_ADMIN_IDS || '')
 // Log once at load so operator knows notification status
 if (!BOT_TOKEN || !String(BOT_TOKEN).trim()) {
   console.warn('[Telegram] TELEGRAM_BOT_TOKEN is not set — notifications will not be sent.');
+} else {
+  // Test connectivity to Telegram API on startup (non-blocking)
+  setTimeout(async () => {
+    try {
+      const testUrl = `https://api.telegram.org/bot${BOT_TOKEN}/getMe`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(testUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (data?.ok) {
+        console.log('[Telegram] Connection test OK. Bot:', data.result?.username || 'connected');
+      } else {
+        console.warn('[Telegram] Connection test failed:', data?.description || 'Unknown error');
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        console.warn('[Telegram] Connection test timeout — Telegram API may be slow or unreachable');
+      } else {
+        console.error('[Telegram] Connection test failed:', e.message || e);
+        console.error('[Telegram] Check: internet connection, firewall rules, DNS resolution for api.telegram.org');
+      }
+    }
+  }, 2000); // Wait 2s after startup
 }
 
 /**
@@ -89,6 +113,10 @@ export async function sendTelegramMessage(chatId, text) {
           disable_web_page_preview: true,
         }),
         signal: controller.signal,
+        // Add options for better error handling
+        redirect: 'follow',
+        // If behind proxy, these might help:
+        // agent: undefined, // Use default agent
       });
       const data = await res.json().catch(() => ({}));
       clearTimeout(timeoutId);
@@ -105,13 +133,31 @@ export async function sendTelegramMessage(chatId, text) {
       if (fetchError.name === 'AbortError') {
         console.warn('[Telegram] sendMessage timeout for chat', numChatId);
       } else {
-        console.error('[Telegram] sendMessage error:', fetchError.message || fetchError);
+        const errorDetails = {
+          name: fetchError.name,
+          message: fetchError.message,
+          code: fetchError.code,
+          cause: fetchError.cause?.message || fetchError.cause,
+          errno: fetchError.errno,
+          syscall: fetchError.syscall,
+        };
+        console.error('[Telegram] sendMessage fetch failed:', errorDetails);
+        // If it's a network/DNS error, provide helpful context
+        if (fetchError.code === 'ENOTFOUND' || fetchError.code === 'ECONNREFUSED' || fetchError.code === 'ETIMEDOUT') {
+          console.error('[Telegram] Network issue: Cannot reach api.telegram.org. Check internet connection, firewall, or DNS.');
+        }
       }
       return false;
     }
   } catch (e) {
     if (e?.name !== 'AbortError') {
-      console.error('[Telegram] sendMessage error:', e?.message || e);
+      const errorDetails = {
+        name: e?.name,
+        message: e?.message,
+        code: e?.code,
+        cause: e?.cause?.message || e?.cause,
+      };
+      console.error('[Telegram] sendMessage error:', errorDetails);
     }
     return false;
   }
