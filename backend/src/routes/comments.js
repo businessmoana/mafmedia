@@ -160,17 +160,18 @@ router.post('/', async (req, res) => {
       io.emit('task:list');
     }
 
-    // When admin comments/replies, notify the assigned user(s)
+    // When admin comments, notify assigned user(s)
     if (req.user.role === 'admin') {
       const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
       const title = (taskRow[0]?.title || 'Task').slice(0, 80);
       
+      // Determine who to notify
       let userIdsToNotify = [];
       if (repliedToUserId) {
-        // Specific user to notify (from reply or single assigned user)
+        // Notify specific user (reply or single assigned user)
         userIdsToNotify = Array.isArray(repliedToUserId) ? repliedToUserId : [repliedToUserId];
       } else {
-        // Fallback: get all assigned users if repliedToUserId wasn't set
+        // Get all assigned users
         const [assignedRows] = await pool.query(
           'SELECT user_id FROM task_assignments WHERE task_id = ?',
           [taskId]

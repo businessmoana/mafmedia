@@ -48,18 +48,18 @@ export function isTelegramAdmin(telegramUserId) {
 }
 
 /**
- * Send a Telegram message to a user.
- * Retries once on failure. Returns true if sent successfully, false otherwise.
+ * Send a single Telegram message. Retries once on failure.
  */
-export async function sendTelegramMessage(chatId, text, retry = true) {
+async function sendMessage(chatId, text) {
   if (!BOT_TOKEN || !chatId || !text) return false;
   
-  // Skip dev-admin
-  if (String(chatId) === 'dev-admin') return false;
+  const chatIdStr = String(chatId);
+  if (chatIdStr === 'dev-admin') return false;
   
   const numChatId = Number(chatId);
   if (!Number.isFinite(numChatId) || numChatId === 0) return false;
 
+  // Try twice (initial + 1 retry)
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -79,24 +79,23 @@ export async function sendTelegramMessage(chatId, text, retry = true) {
         return true;
       }
       
-      // Rate limit - wait and retry
-      if (data?.error_code === 429 && retry && attempt === 0) {
+      // Rate limited - wait and retry
+      if (data?.error_code === 429 && attempt === 0) {
         const waitSeconds = data?.parameters?.retry_after || 2;
         await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
         continue;
       }
       
-      // Other errors - don't retry
-      if (attempt === 0 && retry) {
-        // Wait 1 second before retry for transient errors
+      // Other error - retry once after delay
+      if (attempt === 0) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
       
       return false;
     } catch (err) {
-      // Network error - retry once if first attempt
-      if (attempt === 0 && retry) {
+      // Network error - retry once
+      if (attempt === 0) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
@@ -108,14 +107,15 @@ export async function sendTelegramMessage(chatId, text, retry = true) {
 }
 
 /**
- * Send notifications to multiple users by their DB user IDs.
- * Only sends to users with telegram_user_id set and active = 1.
+ * Send notification to users. Handles rate limits and many users safely.
+ * Sends sequentially with delays to avoid Telegram limits (30 msg/sec).
  */
 export async function notifyUserIds(pool, userIds, text) {
   if (!pool || !userIds?.length || !text?.trim()) return;
   if (!BOT_TOKEN) return;
 
   try {
+    // Get users with valid telegram_user_id
     const placeholders = userIds.map(() => '?').join(',');
     const [rows] = await pool.query(
       `SELECT telegram_user_id FROM users
@@ -128,15 +128,22 @@ export async function notifyUserIds(pool, userIds, text) {
 
     if (!rows.length) return;
 
-    // Send with small delay between users to avoid rate limits
-    for (const row of rows) {
-      await sendTelegramMessage(row.telegram_user_id, text);
-      // Small delay between sends (except last one)
-      if (row !== rows[rows.length - 1]) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+    // Send sequentially with delay to respect Telegram rate limits
+    // Delay of 50ms = max 20 msg/sec, well under Telegram's 30 msg/sec limit
+    let successCount = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const sent = await sendMessage(row.telegram_user_id, text);
+      if (sent) {
+        successCount++;
+      }
+      
+      // Delay between sends (except after last one)
+      if (i < rows.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
   } catch (err) {
-    console.error('[Telegram] notifyUserIds error:', err.message || err);
+    // Silent fail - don't break API responses
   }
 }
