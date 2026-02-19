@@ -37,6 +37,9 @@
 | User opens app (GET /me) | If `telegram_chat_started` is false, send welcome message and set flag | That user (one-time) |
 
 - `notifyUserIds` only sends to users that have a **numeric** `telegram_user_id` (not `dev-admin`), are **active**, and have a non-empty token. It **never throws**; failures are logged only.
+- Sends are **sequential with 50ms delays** to avoid Telegram rate limits (30 msg/sec limit).
+- Automatic **retries** (up to 3 attempts) on network errors with exponential backoff.
+- Handles Telegram **rate limiting (429)** by waiting for the `retry_after` period.
 - `sendTelegramMessage(chatId, text)` returns `false` if token missing, invalid `chatId`, or Telegram API error; errors are logged with `[Telegram]` prefix.
 
 ## Troubleshooting
@@ -51,7 +54,7 @@
   - **Check internet connectivity**: Server must be able to reach `api.telegram.org` (port 443 HTTPS).
   - **Firewall/proxy**: Ensure outbound HTTPS to `api.telegram.org` is allowed. If behind a proxy, configure Node.js HTTP agent or environment variables (`HTTP_PROXY`, `HTTPS_PROXY`).
   - **DNS**: Verify `api.telegram.org` resolves: `nslookup api.telegram.org` or `ping api.telegram.org`.
-  - **Docker/containers**: If running in Docker, ensure the container has network access. Check `docker run --network` or `docker-compose` network settings.
+  - **PM2 users**: Ensure your server has internet access. Test with `curl https://api.telegram.org` from the server. Check firewall rules (iptables/ufw) allow outbound HTTPS (port 443). If behind proxy, set `HTTP_PROXY` and `HTTPS_PROXY` in `.env` and restart PM2 with `pm2 restart all --update-env`.
   - **VPN/Geo-restrictions**: Some networks block Telegram API. Try from a different network or use a VPN.
   - Check logs for error codes: `ENOTFOUND` (DNS), `ECONNREFUSED` (connection refused), `ETIMEDOUT` (timeout).
 
@@ -64,6 +67,64 @@
 
 - **Dev-admin / browser testing**  
   Users with `telegram_user_id = 'dev-admin'` are never sent Telegram messages (skipped in code).
+
+- **Intermittent notifications (sometimes works, sometimes doesn't)**  
+  This usually indicates network instability or hitting Telegram rate limits.
+  
+  **What we've implemented:**
+  - Automatic retries (3 attempts) on network errors
+  - Sequential sending with delays to avoid rate limits
+  - Rate limit (429) handling with automatic retry after wait period
+  
+  **Check logs for:**
+  - `[Telegram] ✅ Successfully sent X of Y notification(s)` = working
+  - `[Telegram] ⚠️ Failed to send X of Y` = some failed
+  - `[Telegram] Rate limited` = hitting Telegram limits (should auto-retry)
+  - `[Telegram] Network error` = connectivity issues (will retry)
+  
+  **If still intermittent:**
+  - Check server network stability: `ping api.telegram.org` (should be consistent)
+  - Check if sending to many users at once (Telegram limit: 30 msg/sec)
+  - Check server resources (CPU/memory) — high load can cause timeouts
+  - Review logs to see if failures are network errors or rate limits
+
+- **PM2-specific: "Connect Timeout Error"**  
+  If using PM2 and seeing connection timeouts:
+  
+  1. **Test server connectivity:**
+     ```bash
+     curl -v https://api.telegram.org
+     # Should return HTML, not timeout
+     ```
+  
+  2. **Check firewall (most common issue):**
+     ```bash
+     # Check iptables
+     sudo iptables -L OUTPUT -n | grep 443
+     # If no rule, allow outbound HTTPS:
+     sudo iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+     sudo iptables-save
+     
+     # Or check ufw
+     sudo ufw status
+     ```
+  
+  3. **Cloud firewall (AWS/GCP/Azure):**
+     - Check Security Groups / Firewall rules
+     - Add outbound rule: Allow HTTPS (443) to `0.0.0.0/0`
+  
+  4. **If behind proxy, add to `.env`:**
+     ```bash
+     HTTP_PROXY=http://proxy.example.com:8080
+     HTTPS_PROXY=http://proxy.example.com:8080
+     ```
+     Then: `pm2 restart all --update-env`
+  
+  5. **After fixing, restart PM2:**
+     ```bash
+     pm2 restart all
+     pm2 logs  # Check for: [Telegram] ✅ Connection test OK
+     ```
 
 ## Files involved
 
