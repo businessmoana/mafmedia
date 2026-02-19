@@ -151,34 +151,7 @@ router.post('/', async (req, res) => {
       );
     }
 
-    // When a user comments, notify admin(s). If an admin is online (connected via Socket.IO),
-    // we rely on in-app unread indicators only; otherwise, send Telegram.
-    if (req.user.role === 'user') {
-      const io = req.app.get('io');
-      let adminOnline = false;
-      if (io?.sockets?.adapter?.rooms) {
-        const adminRoom = io.sockets.adapter.rooms.get('admin');
-        adminOnline = !!adminRoom && adminRoom.size > 0;
-      }
-
-      if (!adminOnline) {
-        const [admins] = await pool.query(
-          'SELECT id FROM users WHERE role = ? AND active = 1',
-          ['admin']
-        );
-        const adminIds = admins.map((r) => r.id);
-        if (adminIds.length) {
-          const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
-          const title = (taskRow[0]?.title || 'Task').slice(0, 80);
-          const userName = req.user.name || 'User';
-          await notifyUserIds(
-            pool,
-            adminIds,
-            `💬 New comment on "${title}"\nFrom "${userName}"\nOpen the app to review`
-          );
-        }
-      }
-    }
+    // No Telegram notification to admins when a user comments (admins use in-app only).
     res.status(201).json(comment[0]);
   } catch (err) {
     console.error(err);
