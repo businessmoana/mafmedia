@@ -6,6 +6,11 @@ const ADMIN_IDS = (process.env.TELEGRAM_ADMIN_IDS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Log once at load so operator knows notification status
+if (!BOT_TOKEN || !String(BOT_TOKEN).trim()) {
+  console.warn('[Telegram] TELEGRAM_BOT_TOKEN is not set — notifications will not be sent.');
+}
+
 /**
  * Validate Telegram Web App initData (HMAC-SHA256 per Telegram docs).
  * @param {string} initData - Raw initData query string from window.Telegram.WebApp.initData
@@ -45,6 +50,15 @@ export function isTelegramAdmin(telegramUserId) {
   return ADMIN_IDS.includes(String(telegramUserId));
 }
 
+/** True if this telegram_user_id can receive bot messages (numeric, not dev placeholder). */
+function isSendableTelegramId(telegramUserId) {
+  if (telegramUserId == null || String(telegramUserId).trim() === '') return false;
+  const s = String(telegramUserId);
+  if (s === 'dev-admin') return false;
+  const n = Number(telegramUserId);
+  return Number.isFinite(n) && n !== 0;
+}
+
 /**
  * Send a text message to a Telegram user (private chat_id = telegram user id).
  * @param {string|number} chatId - Telegram user id (or chat id)
@@ -52,19 +66,25 @@ export function isTelegramAdmin(telegramUserId) {
  * @returns {Promise<boolean>} - true if sent
  */
 export async function sendTelegramMessage(chatId, text) {
-  if (!BOT_TOKEN || !chatId || !text) return false;
+  if (!BOT_TOKEN || !String(BOT_TOKEN).trim()) return false;
+  if (!text || !String(text).trim()) return false;
+  if (!isSendableTelegramId(chatId)) {
+    console.warn('[Telegram] Skipping send: invalid or dev chat_id', { chatId });
+    return false;
+  }
+  const numChatId = Number(chatId);
   try {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: Number(chatId),
-          text,
+          chat_id: numChatId,
+          text: String(text),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
         }),
@@ -73,77 +93,72 @@ export async function sendTelegramMessage(chatId, text) {
       const data = await res.json().catch(() => ({}));
       clearTimeout(timeoutId);
       if (!data?.ok) {
-        // Log Telegram's error so we can see e.g. "Forbidden: bot can't initiate conversation with a user"
-        console.warn(`Telegram sendMessage failed for chat ${chatId}:`, data?.description || data?.error_code || data);
+        console.warn(
+          '[Telegram] sendMessage failed',
+          { chat_id: numChatId, error: data?.description || data?.error_code }
+        );
         return false;
       }
       return true;
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        // Timeout is expected when Telegram API is slow/unreachable - log as warning, not error
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn(`Telegram sendMessage timeout for chat ${chatId} (this is normal if API is slow)`);
-        }
+        console.warn('[Telegram] sendMessage timeout for chat', numChatId);
       } else {
-        throw fetchError;
+        console.error('[Telegram] sendMessage error:', fetchError.message || fetchError);
       }
       return false;
     }
   } catch (e) {
-    // Only log non-timeout errors (network errors, invalid responses, etc.)
-    if (e.name !== 'AbortError') {
-      console.error('Telegram sendMessage error:', e.message || e);
+    if (e?.name !== 'AbortError') {
+      console.error('[Telegram] sendMessage error:', e?.message || e);
     }
     return false;
   }
 }
 
 /**
- * Send a notification to users by their DB user ids (only to those with telegram_user_id set).
+ * Send a notification to users by their DB user ids.
+ * Only sends to users with a valid telegram_user_id (numeric, not dev-admin) and active = 1.
+ * Never throws — logs errors and returns.
+ *
  * @param {import('mysql2/promise').Pool} pool
  * @param {number[]} userIds
  * @param {string} text
  */
 export async function notifyUserIds(pool, userIds, text) {
-  if (!userIds?.length || !text) {
-    console.warn('notifyUserIds: missing userIds or text', { userIds, hasText: !!text });
+  if (!pool || !userIds?.length || !text?.trim()) {
+    console.warn('[Telegram] notifyUserIds: missing pool, userIds or text');
     return;
   }
   try {
-    // MySQL requires placeholders for each value in IN clause
     const placeholders = userIds.map(() => '?').join(',');
     const [rows] = await pool.query(
-      `SELECT telegram_user_id FROM users WHERE id IN (${placeholders}) AND telegram_user_id IS NOT NULL AND active = 1`,
+      `SELECT telegram_user_id FROM users
+       WHERE id IN (${placeholders})
+         AND telegram_user_id IS NOT NULL
+         AND TRIM(telegram_user_id) != ''
+         AND telegram_user_id != 'dev-admin'
+         AND active = 1`,
       userIds
     );
-    if (!rows.length) {
-      console.warn('notifyUserIds: no users found with telegram_user_id', { userIds });
+    const sendable = rows.filter((r) => isSendableTelegramId(r.telegram_user_id));
+    if (!sendable.length) {
+      console.warn('[Telegram] notifyUserIds: no sendable users', { userIds });
       return;
     }
-    console.log(`notifyUserIds: sending to ${rows.length} user(s)`, { 
-      telegramIds: rows.map(r => r.telegram_user_id),
-      userIds 
-    });
-    // Send notifications in parallel but don't wait for all to complete
-    // This prevents blocking if one notification fails
-    const promises = rows.map(row => sendTelegramMessage(row.telegram_user_id, text));
-    const results = await Promise.allSettled(promises);
-    const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value));
+    console.log('[Telegram] notifyUserIds: sending to', sendable.length, 'user(s)');
+    const results = await Promise.allSettled(
+      sendable.map((row) => sendTelegramMessage(row.telegram_user_id, text))
+    );
+    const failed = results.filter(
+      (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value)
+    );
     if (failed.length) {
-      console.warn(`notifyUserIds: ${failed.length} notification(s) failed out of ${results.length}`);
-      failed.forEach((result, idx) => {
-        if (result.status === 'rejected') {
-          console.error(`Notification ${idx} failed:`, result.reason);
-        } else if (result.status === 'fulfilled' && !result.value) {
-          console.warn(`Notification ${idx} returned false (likely Telegram API error)`);
-        }
-      });
-    } else {
-      console.log(`notifyUserIds: all ${results.length} notification(s) sent successfully`);
+      console.warn('[Telegram] notifyUserIds:', failed.length, 'of', results.length, 'failed');
     }
   } catch (err) {
-    console.error('notifyUserIds error:', err);
-    throw err;
+    console.error('[Telegram] notifyUserIds error:', err?.message || err);
+    // Do not rethrow — notifications must not break API responses
   }
 }

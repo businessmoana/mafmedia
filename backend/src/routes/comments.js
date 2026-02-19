@@ -142,21 +142,20 @@ router.post('/', async (req, res) => {
       io.emit('task:list');
     }
 
-    // When admin comments/replies, notify the assigned user(s)
+    // When admin comments/replies, notify the assigned user
     if (req.user.role === 'admin' && repliedToUserId) {
-      const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
-      const title = (taskRow[0]?.title || 'Task').slice(0, 80);
-      const message = parentIdVal
-        ? `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
-        : `💬 <b>Admin posted a comment on "${title}" task.</b>\n\nOpen the app to view.`;
-      await notifyUserIds(
-        pool,
-        [repliedToUserId],
-        message
-      );
+      try {
+        const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
+        const title = (taskRow[0]?.title || 'Task').slice(0, 80);
+        const message = parentIdVal
+          ? `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
+          : `💬 <b>Admin posted a comment on "${title}" task.</b>\n\nOpen the app to view.`;
+        await notifyUserIds(pool, [repliedToUserId], message);
+      } catch (e) {
+        console.error('[Comments] Admin comment notification error:', e?.message || e);
+      }
     }
 
-    // No Telegram notification to admins when a user comments (admins use in-app only).
     res.status(201).json(comment[0]);
   } catch (err) {
     console.error(err);

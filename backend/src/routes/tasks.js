@@ -212,11 +212,15 @@ router.patch('/:id', async (req, res) => {
       io.emit('task:detail', { taskId: id });
     }
     if (completedTaskUserIds.length) {
-      await notifyUserIds(
-        pool,
-        completedTaskUserIds,
-        `✅ <b>Task completed</b>\n\n${task[0]?.title || 'Task'} has been marked as done.`
-      );
+      try {
+        await notifyUserIds(
+          pool,
+          completedTaskUserIds,
+          `✅ <b>Task completed</b>\n\n${task[0]?.title || 'Task'} has been marked as done.`
+        );
+      } catch (e) {
+        console.error('[Tasks] Task-complete notification error:', e?.message || e);
+      }
     }
     res.json(task[0]);
   } catch (err) {
