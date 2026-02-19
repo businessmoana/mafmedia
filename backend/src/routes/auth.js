@@ -24,11 +24,14 @@ router.post('/telegram', async (req, res) => {
     const name = [first_name, last_name].filter(Boolean).join(' ').trim() || username || `User ${telegramUserId}`;
 
     // Use INSERT ... ON DUPLICATE KEY UPDATE to handle race conditions
+    // Only update name if it hasn't been manually edited by admin
     const role = isTelegramAdmin(telegramUserId) ? 'admin' : 'user';
     const [result] = await pool.query(
-      `INSERT INTO users (name, role, telegram_user_id, active) 
-       VALUES (?, ?, ?, TRUE)
-       ON DUPLICATE KEY UPDATE name = VALUES(name)`,
+      `INSERT INTO users (name, role, telegram_user_id, active, name_edited) 
+       VALUES (?, ?, ?, TRUE, FALSE)
+       ON DUPLICATE KEY UPDATE 
+         name = IF(name_edited = TRUE, name, VALUES(name)),
+         role = VALUES(role)`,
       [name, role, String(telegramUserId)]
     );
 

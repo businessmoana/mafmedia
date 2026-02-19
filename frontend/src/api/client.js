@@ -46,6 +46,11 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ role }),
       }),
+    updateName: (id, name) =>
+      request(`/users/${id}/name`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      }),
   },
   tasks: {
     list: () => request('/tasks'),

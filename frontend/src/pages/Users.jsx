@@ -7,6 +7,8 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
     api.users
@@ -60,6 +62,34 @@ export default function Users() {
     }
   };
 
+  const startEditing = (u) => {
+    setEditingId(u.id);
+    setEditingName(u.name);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const saveName = async (userId) => {
+    if (!editingName.trim()) {
+      setError('Name cannot be empty');
+      return;
+    }
+    try {
+      await api.users.updateName(userId, editingName.trim());
+      setUsers((prev) =>
+        prev.map((x) => (x.id === userId ? { ...x, name: editingName.trim() } : x))
+      );
+      setEditingId(null);
+      setEditingName('');
+      setError('');
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <h1 className="font-display text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight mb-2">Users</h1>
@@ -81,7 +111,51 @@ export default function Users() {
             <tbody>
               {admins.map((u) => (
                 <tr key={u.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                  <td className="py-4 px-4 sm:px-6 text-slate-900 font-medium">{u.name}</td>
+                  <td className="py-4 px-4 sm:px-6">
+                    {editingId === u.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveName(u.id);
+                            if (e.key === 'Escape') cancelEditing();
+                          }}
+                          className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveName(u.id)}
+                          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditing}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-900 font-medium">{u.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => startEditing(u)}
+                          className="text-slate-400 hover:text-slate-600 transition-colors"
+                          title="Edit name"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td className="py-4 px-4 sm:px-6 text-slate-600 text-sm">{u.telegram_user_id === 'dev-admin' ? 'Browser (dev)' : 'Telegram'}</td>
                   <td className="py-4 px-4 sm:px-6 text-slate-600 text-sm">
                     <span
@@ -114,7 +188,51 @@ export default function Users() {
               ))}
               {regularUsers.map((u) => (
                 <tr key={u.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50 transition-colors">
-                  <td className="py-4 px-4 sm:px-6 text-slate-900 font-medium">{u.name}</td>
+                  <td className="py-4 px-4 sm:px-6">
+                    {editingId === u.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveName(u.id);
+                            if (e.key === 'Escape') cancelEditing();
+                          }}
+                          className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveName(u.id)}
+                          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditing}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-900 font-medium">{u.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => startEditing(u)}
+                          className="text-slate-400 hover:text-slate-600 transition-colors"
+                          title="Edit name"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td className="py-4 px-4 sm:px-6 text-slate-600 text-sm">{u.telegram_user_id === 'dev-admin' ? 'Browser (dev)' : 'Telegram'}</td>
                   <td className="py-4 px-4 sm:px-6 text-slate-600 text-sm">
                     <span

@@ -76,4 +76,27 @@ router.patch('/:id/role', async (req, res) => {
   }
 });
 
+// Admin: update user name
+router.patch('/:id/name', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: 'name is required and must be a non-empty string' });
+    }
+    const trimmedName = name.trim();
+    if (trimmedName.length > 255) {
+      return res.status(400).json({ error: 'name must be 255 characters or less' });
+    }
+    const [existing] = await pool.query('SELECT id FROM users WHERE id = ?', [id]);
+    if (!existing.length) return res.status(404).json({ error: 'User not found' });
+    
+    await pool.query('UPDATE users SET name = ?, name_edited = TRUE WHERE id = ?', [trimmedName, id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update user name' });
+  }
+});
+
 export default router;
