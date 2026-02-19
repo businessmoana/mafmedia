@@ -276,7 +276,8 @@ export default function TaskDetail() {
     setSubmitting(true);
     setError('');
     try {
-      // If admin and 1 assigned user, auto-reply to their first comment
+      // If admin and 1 assigned user, auto-reply to their first comment if it exists
+      // Otherwise, allow admin to post top-level comment to initiate conversation
       let parentId = null;
       if (isAdmin && (assignedUsers?.length || 0) === 1) {
         // Find the first comment by the assigned user
@@ -285,11 +286,8 @@ export default function TaskDetail() {
         );
         if (userComment) {
           parentId = userComment.id;
-        } else {
-          setError('User must comment first before you can reply');
-          setSubmitting(false);
-          return;
         }
+        // If user hasn't commented yet, parentId stays null (admin posts top-level comment)
       }
       await api.comments.add(id, newComment.trim(), parentId);
       setNewComment('');

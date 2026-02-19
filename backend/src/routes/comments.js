@@ -76,14 +76,13 @@ router.post('/', async (req, res) => {
     );
     if (!taskRows.length) return res.status(404).json({ error: 'Task not found' });
 
-    // Admin must always reply (parent_id required). Users always post top-level.
+    // Admin can post top-level comments or reply. Users always post top-level.
     let parentIdVal = null;
     let repliedToUserId = null;
     
     if (req.user.role === 'admin') {
-      // Admin must always reply to a user's comment
       if (parentId == null) {
-        // Check if task has exactly 1 assigned user - auto-reply to their first comment
+        // Check if task has exactly 1 assigned user - auto-reply to their first comment if it exists
         const [assignedRows] = await pool.query(
           'SELECT user_id FROM task_assignments WHERE task_id = ?',
           [taskId]
@@ -95,16 +94,19 @@ router.post('/', async (req, res) => {
             [taskId, assignedRows[0].user_id]
           );
           if (userCommentRows.length) {
+            // User has commented - auto-reply to their first comment
             parentIdVal = userCommentRows[0].id;
             repliedToUserId = assignedRows[0].user_id;
           } else {
-            // User hasn't commented yet - can't auto-reply
-            return res.status(400).json({ error: 'The assigned user must comment first before you can reply' });
+            // User hasn't commented yet - admin can post top-level comment to initiate conversation
+            parentIdVal = null;
+            repliedToUserId = assignedRows[0].user_id; // Still notify the assigned user
           }
-        } else {
+        } else if (assignedRows.length > 1) {
           // Multiple users - must specify which user to reply to
-          return res.status(400).json({ error: 'parent_id is required for admin comments' });
+          return res.status(400).json({ error: 'parent_id is required when multiple users are assigned' });
         }
+        // If no assigned users, admin can still post top-level comment (parentIdVal stays null)
       } else {
         // Admin explicitly replying to a comment
         const [parentRows] = await pool.query(
@@ -140,14 +142,17 @@ router.post('/', async (req, res) => {
       io.emit('task:list');
     }
 
-    // When admin replies to a user's comment, notify only that specific user
+    // When admin comments/replies, notify the assigned user(s)
     if (req.user.role === 'admin' && repliedToUserId) {
       const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
       const title = (taskRow[0]?.title || 'Task').slice(0, 80);
+      const message = parentIdVal
+        ? `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
+        : `💬 <b>Admin posted a comment on "${title}" task.</b>\n\nOpen the app to view.`;
       await notifyUserIds(
         pool,
         [repliedToUserId],
-        `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
+        message
       );
     }
 
