@@ -98,7 +98,7 @@ export default function Dashboard() {
   return (
     <div className="animate-fade-in">
       <div className="mb-8">
-        <h1 className="font-display text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">
           {user?.role === 'admin' ? 'All Tasks' : 'My Tasks'}
         </h1>
         <p className="mt-1.5 text-slate-500 text-sm">
@@ -117,7 +117,7 @@ export default function Dashboard() {
       </div>
 
       {tasks.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-16 text-center shadow-card">
+        <div className="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-card">
           <p className="text-slate-500">No tasks yet.</p>
           {user?.role === 'admin' && (
             <Link
@@ -133,16 +133,16 @@ export default function Dashboard() {
           {tasks.map((task) => (
             <li key={task.id}>
               <div className={`rounded-2xl border p-5 sm:p-6 shadow-card transition-all duration-200 ${
-                task.unread ? 'border-brand-500/50 bg-brand-500/5 hover:border-brand-500/70' : 'border-slate-800 bg-slate-900/50 hover:border-slate-700 hover:shadow-card-hover'
+                task.unread ? 'border-brand-500/50 bg-brand-500/5 hover:border-brand-500/70' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-card-hover'
               }`}>
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <Link to={`/task/${task.id}`} className="min-w-0 flex-1 group">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="font-semibold text-white group-hover:text-brand-400 transition-colors truncate">
+                      <h2 className="font-semibold text-slate-900 group-hover:text-brand-500 transition-colors truncate">
                         {task.title}
                       </h2>
                       {(task.unread || task.is_new) && (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500/20 px-2.5 py-1 text-xs font-semibold text-brand-300 ring-1 ring-brand-500/30 shrink-0">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500/20 px-2.5 py-1 text-xs font-semibold text-brand-600 ring-1 ring-brand-500/30 shrink-0">
                           <span className="h-2 w-2 rounded-full bg-brand-400 animate-pulse" aria-hidden />
                           {task.is_new ? 'New task' : (task.unread_comment_count > 0 ? `${task.unread_comment_count} unread comment${task.unread_comment_count !== 1 ? 's' : ''}` : 'Unread')}
                         </span>
@@ -163,7 +163,7 @@ export default function Dashboard() {
                             </span>
                           )}
                           {task.assigned_count != null && (
-                            <span className="inline-flex items-center rounded-lg bg-slate-700/50 px-2.5 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-600">
+                            <span className="inline-flex items-center rounded-lg bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-300">
                               {task.assigned_count} assigned
                             </span>
                           )}
@@ -199,7 +199,7 @@ export default function Dashboard() {
                         )}
                         <Link
                           to={`/task/${task.id}`}
-                          className="rounded-xl border border-slate-600 px-3.5 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200"
+                          className="rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all duration-200"
                         >
                           Open
                         </Link>
@@ -208,7 +208,7 @@ export default function Dashboard() {
                     {user?.role !== 'admin' && (
                       <Link
                         to={`/task/${task.id}`}
-                        className="rounded-xl border border-slate-600 px-3.5 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200"
+                        className="rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all duration-200"
                       >
                         Open →
                       </Link>

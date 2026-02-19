@@ -77,7 +77,7 @@ export default function CreateTask() {
       <h1 className="font-display text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-2">Create Task</h1>
       <p className="text-slate-500 text-sm mb-8">Assign a publication task to website partners.</p>
 
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 sm:p-8 shadow-card">
+      <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-card">
         {error && (
           <div className="rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3">
             {error}
@@ -85,59 +85,59 @@ export default function CreateTask() {
         )}
 
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-slate-400 mb-2">Title</label>
+          <label htmlFor="title" className="block text-sm font-medium text-slate-600 mb-2">Title</label>
           <input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full rounded-xl bg-slate-800/80 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200"
+            className="w-full rounded-xl bg-slate-50 border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200"
             placeholder="Task title"
           />
         </div>
 
         <div>
-          <label htmlFor="content" className="block text-sm font-medium text-slate-400 mb-2">Content / Instructions</label>
+          <label htmlFor="content" className="block text-sm font-medium text-slate-600 mb-2">Content / Instructions</label>
           <textarea
             id="content"
             value={content_body}
             onChange={(e) => setContentBody(e.target.value)}
             required
             rows={6}
-            className="w-full rounded-xl bg-slate-800/80 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
+            className="w-full rounded-xl bg-slate-50 border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
             placeholder="Full text, instructions, requirements..."
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-400 mb-3">Assign to</label>
+          <label className="block text-sm font-medium text-slate-600 mb-3">Assign to</label>
           {users.length === 0 ? (
             <p className="text-slate-500 text-sm py-4">No users yet. Partners will appear when they open the app from the Telegram bot or register below.</p>
           ) : (
-          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4 space-y-3 max-h-64 overflow-y-auto scrollbar-thin">
+          <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 space-y-3 max-h-64 overflow-y-auto scrollbar-thin">
             <label className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={selectAll}
                 onChange={(e) => setSelectAll(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
+                className="rounded border-slate-300 bg-slate-100 text-brand-500 focus:ring-brand-500"
               />
-              <span className="font-medium text-white group-hover:text-brand-400 transition-colors">
+              <span className="font-medium text-slate-900 group-hover:text-brand-500 transition-colors">
                 Select all ({users.length} users)
               </span>
             </label>
             {!selectAll && (
-              <div className="pt-2 border-t border-slate-800 space-y-2">
+              <div className="pt-2 border-t border-slate-200 space-y-2">
                 {users.map((u) => (
                   <label key={u.id} className="flex items-center gap-3 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(u.id)}
                       onChange={() => toggleUser(u.id)}
-                      className="rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
+                      className="rounded border-slate-300 bg-slate-100 text-brand-500 focus:ring-brand-500"
                     />
-                    <span className="text-slate-300 group-hover:text-white">
+                    <span className="text-slate-700 group-hover:text-slate-900">
                       {u.name}
                       <span className="text-slate-500 text-sm ml-1">({u.telegram_user_id === 'dev-admin' ? 'Browser (dev)' : 'Telegram'})</span>
                     </span>
@@ -154,9 +154,9 @@ export default function CreateTask() {
             type="checkbox"
             checked={visible}
             onChange={(e) => setVisible(e.target.checked)}
-            className="rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
+            className="rounded border-slate-300 bg-slate-100 text-brand-500 focus:ring-brand-500"
           />
-          <span className="text-slate-300">Visible to assigned users</span>
+          <span className="text-slate-700">Visible to assigned users</span>
         </label>
 
         <div className="flex gap-3 pt-2">
@@ -170,7 +170,7 @@ export default function CreateTask() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="rounded-xl border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-800 px-6 py-3.5 font-medium transition-all duration-200"
+            className="rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-6 py-3.5 font-medium transition-all duration-200"
           >
             Cancel
           </button>

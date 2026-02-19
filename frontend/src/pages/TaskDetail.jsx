@@ -20,7 +20,7 @@ function Linkify({ text }) {
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-brand-400 hover:text-brand-300 underline break-all"
+            className="text-brand-600 hover:text-brand-700 underline break-all"
           >
             {part}
           </a>
@@ -50,18 +50,18 @@ function CommentItem({
 }) {
   return (
     <li
-      className={`rounded-xl bg-slate-800/50 p-4 border border-slate-700/50 shadow-sm ${isReply ? 'ml-4 sm:ml-6 border-l-2 border-l-brand-500/50' : ''}`}
+      className={`rounded-xl bg-slate-50 p-4 border border-slate-200 shadow-sm ${isReply ? 'ml-4 sm:ml-6 border-l-2 border-l-brand-500/50' : ''}`}
     >
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-        <span className="font-medium text-white">{c.user_name}</span>
+        <span className="font-medium text-slate-900">{c.user_name}</span>
         <div className="flex items-center gap-2">
           {c.user_role === 'admin' && (
-            <span className="rounded px-2 py-0.5 text-xs font-medium bg-brand-500/20 text-brand-400">
+            <span className="rounded px-2 py-0.5 text-xs font-medium bg-brand-500/20 text-brand-600">
               Admin
             </span>
           )}
           {isReply && (
-            <span className="rounded px-2 py-0.5 text-xs font-medium bg-slate-600 text-slate-400">
+            <span className="rounded px-2 py-0.5 text-xs font-medium bg-slate-300 text-slate-600">
               Reply
             </span>
           )}
@@ -71,7 +71,7 @@ function CommentItem({
               <button
                 type="button"
                 onClick={() => startEditComment(c)}
-                className="text-slate-500 hover:text-brand-400 text-sm font-medium"
+                className="text-slate-500 hover:text-brand-600 text-sm font-medium"
               >
                 Edit
               </button>
@@ -85,7 +85,7 @@ function CommentItem({
             value={editBody}
             onChange={(e) => setEditBody(e.target.value)}
             rows={3}
-            className="w-full rounded-xl bg-slate-800 border border-slate-600 px-3 py-2 text-white text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none resize-none transition duration-200"
+            className="w-full rounded-xl bg-slate-50 border border-slate-300 px-3 py-2 text-slate-900 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none resize-none transition duration-200"
             autoFocus
           />
           <div className="flex gap-2">
@@ -99,14 +99,14 @@ function CommentItem({
             <button
               type="button"
               onClick={cancelEditComment}
-              className="rounded-lg border border-slate-600 text-slate-400 hover:text-white text-sm py-1.5 px-3"
+              className="rounded-lg border border-slate-300 text-slate-600 hover:text-slate-900 text-sm py-1.5 px-3"
             >
               Cancel
             </button>
           </div>
         </form>
       ) : (
-        <p className="text-slate-300 text-sm whitespace-pre-wrap">
+        <p className="text-slate-700 text-sm whitespace-pre-wrap">
           <Linkify text={c.body} />
         </p>
       )}
@@ -184,14 +184,14 @@ function CommentThreadsAdmin({
               {replyingToId === parent.id ? (
                 <form
                   onSubmit={(e) => handleReply(e, parent.id)}
-                  className="ml-4 sm:ml-6 rounded-xl bg-slate-800/80 p-3 border border-slate-700 space-y-2"
+                  className="ml-4 sm:ml-6 rounded-xl bg-slate-50 p-3 border border-slate-200 space-y-2"
                 >
                   <textarea
                     value={replyBody}
                     onChange={(e) => setReplyBody(e.target.value)}
                     placeholder="Reply to this user..."
                     rows={2}
-                    className="w-full rounded-xl bg-slate-800 border border-slate-600 px-3 py-2 text-white text-sm placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none resize-none"
+                    className="w-full rounded-xl bg-slate-50 border border-slate-300 px-3 py-2 text-slate-900 text-sm placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none resize-none"
                     autoFocus
                   />
                   <div className="flex gap-2">
@@ -205,7 +205,7 @@ function CommentThreadsAdmin({
                     <button
                       type="button"
                       onClick={() => { setReplyingToId(null); setReplyBody(''); }}
-                      className="rounded-lg border border-slate-600 text-slate-400 hover:text-white text-sm py-1.5 px-3"
+                      className="rounded-lg border border-slate-300 text-slate-600 hover:text-slate-900 text-sm py-1.5 px-3"
                     >
                       Cancel
                     </button>
@@ -216,7 +216,7 @@ function CommentThreadsAdmin({
                   <button
                     type="button"
                     onClick={() => setReplyingToId(parent.id)}
-                    className="text-slate-500 hover:text-brand-400 text-sm font-medium"
+                    className="text-slate-500 hover:text-brand-600 text-sm font-medium"
                   >
                     Reply to {parent.user_name}
                   </button>
@@ -470,7 +470,7 @@ export default function TaskDetail() {
 
   return (
     <div className="animate-fade-in relative">
-      <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-300 text-sm mb-6">
+      <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm mb-6">
         ← Back to tasks
       </Link>
 
@@ -485,11 +485,11 @@ export default function TaskDetail() {
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="fixed right-0 top-1/2 -translate-y-1/2 z-30 flex items-center gap-2 rounded-l-xl border border-r-0 border-slate-700 bg-slate-800/95 py-4 pl-4 pr-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/95 shadow-card transition-all duration-200"
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-30 flex items-center gap-2 rounded-l-xl border border-r-0 border-slate-300 bg-white py-4 pl-4 pr-3 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 shadow-card transition-all duration-200"
             title="Assigned users"
           >
             <span className="hidden sm:inline">Assigned</span>
-            <span className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg bg-slate-600 px-2 text-xs font-semibold text-white">
+            <span className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg bg-slate-400 px-2 text-xs font-semibold text-white">
               {assignedUsers?.length ?? 0}
             </span>
           </button>
@@ -502,15 +502,15 @@ export default function TaskDetail() {
                 aria-hidden
               />
               <aside
-                className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm flex flex-col bg-slate-900 border-l border-slate-800 shadow-card-hover animate-slide-in-right scrollbar-thin"
+                className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm flex flex-col bg-white border-l border-slate-200 shadow-card-hover animate-slide-in-right scrollbar-thin"
                 aria-label="Assigned users"
               >
-                <div className="flex items-center justify-between p-4 border-b border-slate-800">
-                  <h3 className="text-base font-semibold text-white">Assigned to</h3>
+                <div className="flex items-center justify-between p-4 border-b border-slate-200">
+                  <h3 className="text-base font-semibold text-slate-900">Assigned to</h3>
                   <button
                     type="button"
                     onClick={() => setDrawerOpen(false)}
-                    className="rounded-lg p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="rounded-lg p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                     aria-label="Close"
                   >
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,9 +524,9 @@ export default function TaskDetail() {
                       {assignedUsers.map((u) => (
                         <li
                           key={u.id}
-                          className="flex flex-col rounded-xl bg-slate-800/50 px-3 py-2.5 border border-slate-700/50"
+                          className="flex flex-col rounded-xl bg-slate-50 px-3 py-2.5 border border-slate-200"
                         >
-                          <span className="font-medium text-slate-200 text-sm">{u.name}</span>
+                          <span className="font-medium text-slate-800 text-sm">{u.name}</span>
                           <span className="text-xs text-slate-500 truncate mt-0.5" title={u.telegram_user_id === 'dev-admin' ? 'Browser (dev)' : 'Telegram'}>
                             {u.telegram_user_id === 'dev-admin' ? 'Browser (dev)' : 'Telegram'}
                           </span>
@@ -544,8 +544,8 @@ export default function TaskDetail() {
       )}
 
       <div className="max-w-2xl">
-      <article className="rounded-2xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-card">
-        <div className="p-5 sm:p-6 border-b border-slate-800">
+      <article className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-card">
+        <div className="p-5 sm:p-6 border-b border-slate-200">
           {isAdmin && editingTask ? (
             <form onSubmit={saveEditTask} className="space-y-4">
               <div>
@@ -553,7 +553,7 @@ export default function TaskDetail() {
                 <input
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200"
+                  className="w-full rounded-xl bg-slate-50 border border-slate-300 px-4 py-2.5 text-slate-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200"
                   required
                 />
               </div>
@@ -563,7 +563,7 @@ export default function TaskDetail() {
                   value={editContentBody}
                   onChange={(e) => setEditContentBody(e.target.value)}
                   rows={5}
-                  className="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none resize-none transition duration-200"
+                  className="w-full rounded-xl bg-slate-50 border border-slate-300 px-4 py-2.5 text-slate-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none resize-none transition duration-200"
                   required
                 />
               </div>
@@ -572,7 +572,7 @@ export default function TaskDetail() {
                 {allUsers.length === 0 ? (
                   <p className="text-slate-500 text-sm">Loading users…</p>
                 ) : (
-                  <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4 space-y-2 max-h-48 overflow-y-auto scrollbar-thin">
+                  <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 space-y-2 max-h-48 overflow-y-auto scrollbar-thin">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -582,21 +582,21 @@ export default function TaskDetail() {
                           if (e.target.checked) setEditSelectedIds(new Set(allUsers.map((u) => u.id)));
                           else setEditSelectedIds(new Set());
                         }}
-                        className="rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
+                        className="rounded border-slate-300 bg-slate-100 text-brand-500 focus:ring-brand-500"
                       />
-                      <span className="font-medium text-white">Select all ({allUsers.length})</span>
+                      <span className="font-medium text-slate-900">Select all ({allUsers.length})</span>
                     </label>
                     {!editSelectAll && (
-                      <div className="pt-2 border-t border-slate-700 space-y-1.5">
+                      <div className="pt-2 border-t border-slate-200 space-y-1.5">
                         {allUsers.map((u) => (
                           <label key={u.id} className="flex items-center gap-3 cursor-pointer text-sm">
                             <input
                               type="checkbox"
                               checked={editSelectedIds.has(u.id)}
                               onChange={() => toggleEditUser(u.id)}
-                              className="rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
+                              className="rounded border-slate-300 bg-slate-100 text-brand-500 focus:ring-brand-500"
                             />
-                            <span className="text-slate-300">{u.name}</span>
+                            <span className="text-slate-700">{u.name}</span>
                             <span className="text-slate-500 text-xs">({u.telegram_user_id === 'dev-admin' ? 'Browser (dev)' : 'Telegram'})</span>
                           </label>
                         ))}
@@ -610,9 +610,9 @@ export default function TaskDetail() {
                   type="checkbox"
                   checked={editVisible}
                   onChange={(e) => setEditVisible(e.target.checked)}
-                  className="rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
+                  className="rounded border-slate-300 bg-slate-100 text-brand-500 focus:ring-brand-500"
                 />
-                <span className="text-slate-300">Visible to assigned users</span>
+                <span className="text-slate-700">Visible to assigned users</span>
               </label>
               <div className="flex gap-2 pt-2">
                 <button
@@ -625,7 +625,7 @@ export default function TaskDetail() {
                 <button
                   type="button"
                   onClick={cancelEditTask}
-                  className="rounded-xl border border-slate-600 text-slate-400 hover:text-white py-2 px-4 font-medium"
+                  className="rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 py-2 px-4 font-medium"
                 >
                   Cancel
                 </button>
@@ -634,7 +634,7 @@ export default function TaskDetail() {
           ) : (
             <>
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <h1 className="font-display text-xl sm:text-2xl font-semibold text-white">{task.title}</h1>
+                <h1 className="font-display text-xl sm:text-2xl font-semibold text-slate-900">{task.title}</h1>
                 <div className="flex gap-2 flex-wrap">
                   {isAdmin && (
                     <>
@@ -642,7 +642,7 @@ export default function TaskDetail() {
                         <button
                           type="button"
                           onClick={startEditTask}
-                          className="rounded-xl border border-slate-600 px-3.5 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200"
+                          className="rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all duration-200"
                         >
                           Edit task
                         </button>
@@ -669,7 +669,7 @@ export default function TaskDetail() {
                   )}
                 </div>
               </div>
-              <p className="mt-3 text-slate-300 whitespace-pre-wrap">{task.content_body}</p>
+              <p className="mt-3 text-slate-700 whitespace-pre-wrap">{task.content_body}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="text-slate-500 text-sm">{formatDateTime(task.created_at)}</span>
                 {task.completed_at && (
@@ -688,7 +688,7 @@ export default function TaskDetail() {
         </div>
 
         <div className="p-5 sm:p-6">
-          <h2 className="font-medium text-white mb-4">Comments</h2>
+          <h2 className="font-medium text-slate-900 mb-4">Comments</h2>
           {comments.length === 0 ? (
             <p className="text-slate-500 text-sm">No comments yet.</p>
           ) : isAdmin ? (
@@ -746,7 +746,7 @@ export default function TaskDetail() {
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Add your comment (e.g. link to published article)..."
                     rows={3}
-                    className="w-full rounded-xl bg-slate-800/80 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
+                    className="w-full rounded-xl bg-slate-50 border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
                   />
                   <button
                     type="submit"
@@ -765,7 +765,7 @@ export default function TaskDetail() {
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder={`Reply to ${assignedUsers[0]?.name || 'user'}...`}
                     rows={3}
-                    className="w-full rounded-xl bg-slate-800/80 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
+                    className="w-full rounded-xl bg-slate-50 border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 outline-none transition duration-200 resize-none"
                   />
                   <button
                     type="submit"

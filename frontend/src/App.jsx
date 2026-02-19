@@ -12,8 +12,8 @@ function ProtectedRoute({ children, adminOnly }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="animate-pulse text-slate-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-pulse text-slate-600">Loading...</div>
       </div>
     );
   }

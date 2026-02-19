@@ -7,16 +7,16 @@
     @apply antialiased;
   }
   body {
-    @apply bg-slate-950 text-slate-100 font-sans min-h-screen;
+    @apply bg-slate-50 text-slate-900 font-sans min-h-screen;
   }
   * {
-    @apply border-slate-800;
+    @apply border-slate-200;
   }
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.slate.600') transparent;
+    scrollbar-color: theme('colors.slate.400') transparent;
   }
 }
