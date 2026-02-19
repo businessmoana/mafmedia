@@ -428,7 +428,7 @@ export default function TaskDetail() {
 
   const handleCopyTask = async () => {
     if (!task) return;
-    const taskText = `${task.title}\n\n${task.content_body}`;
+    const taskText = task.content_body;
     
     // Try modern Clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
