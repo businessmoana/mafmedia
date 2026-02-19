@@ -30,9 +30,17 @@ router.get('/', async (req, res) => {
       return res.json(rows);
     }
 
-    // User sees: (1) own comments, (2) admin replies to their comments (no more public admin comments)
+    // User sees: (1) own comments, (2) admin replies to their comments, (3) top-level admin comments if task has only 1 assigned user
     const taskIdNum = parseInt(taskId, 10);
     const userIdNum = parseInt(userId, 10);
+    
+    // Check if task has exactly 1 assigned user (this user)
+    const [assignedCheck] = await pool.query(
+      'SELECT COUNT(*) as count FROM task_assignments WHERE task_id = ?',
+      [taskIdNum]
+    );
+    const isSingleUserTask = assignedCheck[0]?.count === 1;
+    
     const [rows] = await pool.query(
       `SELECT c.*, u.name as user_name, u.role as user_role
        FROM comments c
@@ -44,9 +52,14 @@ router.get('/', async (req, res) => {
              SELECT 1 FROM comments p
              WHERE p.id = c.parent_id AND p.task_id = c.task_id AND p.user_id = ?
            )
+           OR (
+             ? = 1
+             AND u.role = 'admin'
+             AND c.parent_id IS NULL
+           )
          )
        ORDER BY COALESCE(c.parent_id, c.id), c.created_at ASC`,
-      [taskIdNum, userIdNum, userIdNum]
+      [taskIdNum, userIdNum, userIdNum, isSingleUserTask ? 1 : 0]
     );
     res.json(rows);
   } catch (err) {
