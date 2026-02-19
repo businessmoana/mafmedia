@@ -5,7 +5,7 @@ import { extractUrls } from '../lib/links.js';
 
 const router = express.Router();
 
-// Get tasks: admin sees all; user sees assigned + visible only. Ordered by date DESC. Includes unread/is_new.
+// Get tasks: admin sees all; user sees assigned + visible only. Ordered by last activity DESC (creation, edits, comments, completion). Includes unread/is_new.
 router.get('/', async (req, res) => {
   try {
     const { role, id: userId } = req.user;
@@ -16,11 +16,17 @@ router.get('/', async (req, res) => {
          (SELECT COUNT(*) FROM task_assignments WHERE task_id = t.id) as assigned_count,
          trs.last_read_at,
          (SELECT MAX(created_at) FROM comments WHERE task_id = t.id) as latest_comment_at,
-         (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id AND (trs.last_read_at IS NULL OR c.created_at > trs.last_read_at)) as unread_comment_count
+         (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id AND (trs.last_read_at IS NULL OR c.created_at > trs.last_read_at)) as unread_comment_count,
+         GREATEST(
+           COALESCE((SELECT MAX(created_at) FROM comments WHERE task_id = t.id), '1970-01-01'),
+           COALESCE(t.completed_at, '1970-01-01'),
+           COALESCE(t.updated_at, '1970-01-01'),
+           COALESCE(t.created_at, '1970-01-01')
+         ) as last_activity_at
          FROM tasks t
          JOIN users u ON t.admin_id = u.id
          LEFT JOIN task_read_state trs ON trs.task_id = t.id AND trs.user_id = ?
-         ORDER BY t.created_at DESC`,
+         ORDER BY last_activity_at DESC`,
         [userId]
       );
       const tasks = rows.map((t) => addUnreadFlags(t));
@@ -31,13 +37,19 @@ router.get('/', async (req, res) => {
       `SELECT t.*, u.name as admin_name,
        trs.last_read_at,
        (SELECT MAX(created_at) FROM comments WHERE task_id = t.id) as latest_comment_at,
-       (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id AND (trs.last_read_at IS NULL OR c.created_at > trs.last_read_at)) as unread_comment_count
+       (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id AND (trs.last_read_at IS NULL OR c.created_at > trs.last_read_at)) as unread_comment_count,
+       GREATEST(
+         COALESCE((SELECT MAX(created_at) FROM comments WHERE task_id = t.id), '1970-01-01'),
+         COALESCE(t.completed_at, '1970-01-01'),
+         COALESCE(t.updated_at, '1970-01-01'),
+         COALESCE(t.created_at, '1970-01-01')
+       ) as last_activity_at
        FROM tasks t
        JOIN task_assignments ta ON t.id = ta.task_id
        JOIN users u ON t.admin_id = u.id
        LEFT JOIN task_read_state trs ON trs.task_id = t.id AND trs.user_id = ?
        WHERE ta.user_id = ? AND t.visible = 1
-       ORDER BY t.created_at DESC`,
+       ORDER BY last_activity_at DESC`,
       [userId, userId]
     );
     const tasks = rows.map((t) => addUnreadFlags(t));
