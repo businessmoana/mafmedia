@@ -429,12 +429,42 @@ export default function TaskDetail() {
   const handleCopyTask = async () => {
     if (!task) return;
     const taskText = `${task.title}\n\n${task.content_body}`;
+    
+    // Try modern Clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(taskText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch (err) {
+        console.error('Clipboard API failed:', err);
+      }
+    }
+    
+    // Fallback to execCommand method
     try {
-      await navigator.clipboard.writeText(taskText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const textArea = document.createElement('textarea');
+      textArea.value = taskText;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (successful) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        setError('Failed to copy to clipboard. Please copy manually.');
+      }
     } catch (err) {
-      setError('Failed to copy to clipboard');
+      console.error('Fallback copy failed:', err);
+      setError('Failed to copy to clipboard. Please copy manually.');
     }
   };
 
