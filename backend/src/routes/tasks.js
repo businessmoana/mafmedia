@@ -1,6 +1,7 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { notifyUserIds } from '../lib/telegram.js';
+import { extractUrls } from '../lib/links.js';
 
 const router = express.Router();
 
@@ -180,6 +181,28 @@ router.patch('/:id', async (req, res) => {
       if (typeof completed === 'boolean' && completed) {
         const [assigned] = await pool.query('SELECT user_id FROM task_assignments WHERE task_id = ?', [id]);
         completedTaskUserIds = assigned.map((r) => r.user_id);
+        
+        // Extract links from user comments (not admin comments) when marking as complete
+        const [userComments] = await pool.query(
+          `SELECT c.body 
+           FROM comments c 
+           JOIN users u ON c.user_id = u.id 
+           WHERE c.task_id = ? AND u.role = 'user'`,
+          [id]
+        );
+        
+        const allLinks = [];
+        userComments.forEach(comment => {
+          const links = extractUrls(comment.body);
+          allLinks.push(...links);
+        });
+        
+        // Remove duplicates and store as JSON array
+        const uniqueLinks = [...new Set(allLinks)];
+        if (uniqueLinks.length > 0) {
+          updates.push('links_list = ?');
+          params.push(JSON.stringify(uniqueLinks));
+        }
       }
       // Title/content are editable only before completion.
       if (typeof title === 'string' && title.trim()) {

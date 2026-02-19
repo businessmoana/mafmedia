@@ -13,6 +13,20 @@ function formatDate(str) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
+function parseLinks(linksList) {
+  if (!linksList) return [];
+  if (Array.isArray(linksList)) return linksList;
+  if (typeof linksList === 'string') {
+    try {
+      const parsed = JSON.parse(linksList);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const socket = useSocket();
@@ -20,6 +34,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
+  const [linksModalTask, setLinksModalTask] = useState(null);
 
   const fetchTasks = useCallback(() => {
     api.tasks
@@ -67,11 +82,8 @@ export default function Dashboard() {
     setUpdatingId(task.id);
     try {
       await api.tasks.update(task.id, { completed: true });
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === task.id ? { ...t, completed_at: new Date().toISOString() } : t
-        )
-      );
+      // Refresh tasks to get updated links_list
+      await fetchTasks();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -197,6 +209,22 @@ export default function Dashboard() {
                             {updatingId === task.id ? '…' : 'Complete'}
                           </button>
                         )}
+                        {task.completed_at && (() => {
+                          const links = parseLinks(task.links_list);
+                          return links.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setLinksModalTask({ ...task, links_list: links });
+                              }}
+                              className="rounded-xl bg-blue-500/15 text-blue-600 px-3.5 py-2 text-sm font-medium hover:bg-blue-500/25 ring-1 ring-blue-500/20 transition-all duration-200"
+                            >
+                              Links ({links.length})
+                            </button>
+                          );
+                        })()}
                         <Link
                           to={`/task/${task.id}`}
                           className="rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all duration-200"
@@ -219,6 +247,59 @@ export default function Dashboard() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Links Modal */}
+      {linksModalTask && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setLinksModalTask(null)}
+        >
+          <div
+            className="rounded-2xl bg-white shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Links from {linksModalTask.title}
+              </h3>
+              <button
+                onClick={() => setLinksModalTask(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-4 overflow-y-auto flex-1">
+              {(() => {
+                const links = parseLinks(linksModalTask.links_list);
+                return links.length > 0 ? (
+                  <ul className="space-y-2">
+                    {links.map((link, index) => (
+                      <li key={index}>
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block p-3 rounded-lg border border-slate-200 hover:border-brand-500 hover:bg-brand-50 transition-all duration-200 break-all"
+                        >
+                          <span className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+                            {link}
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-slate-500 text-sm">No links found.</p>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
