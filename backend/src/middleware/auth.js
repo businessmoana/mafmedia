@@ -12,7 +12,7 @@ export const authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const [rows] = await pool.query(
-      'SELECT id, name, role, telegram_user_id, active FROM users WHERE id = ?',
+      'SELECT id, name, role, telegram_user_id, active, COALESCE(telegram_chat_started, FALSE) AS telegram_chat_started FROM users WHERE id = ?',
       [decoded.userId]
     );
     if (!rows.length) {

@@ -72,7 +72,12 @@ export async function sendTelegramMessage(chatId, text) {
       });
       const data = await res.json().catch(() => ({}));
       clearTimeout(timeoutId);
-      return !!data?.ok;
+      if (!data?.ok) {
+        // Log Telegram's error so we can see e.g. "Forbidden: bot can't initiate conversation with a user"
+        console.warn(`Telegram sendMessage failed for chat ${chatId}:`, data?.description || data?.error_code || data);
+        return false;
+      }
+      return true;
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {

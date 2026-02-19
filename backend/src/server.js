@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 
 import pool from './config/db.js';
 import { authenticate, requireAdmin } from './middleware/auth.js';
+import { sendTelegramMessage } from './lib/telegram.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
 import tasksRouter from './routes/tasks.js';
@@ -52,6 +53,29 @@ app.use('/api/assignments', authenticate, requireAdmin, assignmentsRouter);
 
 app.get('/api/me', authenticate, (req, res) => {
   res.json(req.user);
+
+  // One-time: open Telegram chat so we can notify user when app is closed.
+  // Telegram only allows bot to message user after user has "started" the bot; sending
+  // a message when they open the app (from the bot) establishes that.
+  const u = req.user;
+  if (
+    u?.role === 'user' &&
+    u?.telegram_user_id &&
+    u?.telegram_user_id !== 'dev-admin' &&
+    !u?.telegram_chat_started
+  ) {
+    const text = '✅ You\'re set. You\'ll get notifications here when admin assigns you tasks or replies.';
+    sendTelegramMessage(u.telegram_user_id, text)
+      .then((ok) => {
+        if (ok) {
+          return pool.query(
+            'UPDATE users SET telegram_chat_started = TRUE WHERE id = ?',
+            [u.id]
+          );
+        }
+      })
+      .catch((err) => console.error('Ensure Telegram chat failed:', err));
+  }
 });
 
 app.get('/health', (req, res) => res.json({ ok: true }));

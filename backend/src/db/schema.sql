@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
   telegram_user_id VARCHAR(50) NOT NULL UNIQUE,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  telegram_chat_started BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
