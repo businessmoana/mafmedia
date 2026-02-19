@@ -113,11 +113,16 @@ router.post('/', async (req, res) => {
           } else {
             // User hasn't commented yet - admin can post top-level comment to initiate conversation
             parentIdVal = null;
-            repliedToUserId = assignedRows[0].user_id; // Still notify the assigned user
+            repliedToUserId = assignedRows[0].user_id;
           }
         } else if (assignedRows.length > 1) {
-          // Multiple users - must specify which user to reply to
-          return res.status(400).json({ error: 'parent_id is required when multiple users are assigned' });
+          // Multiple users - notify all assigned users if no parent_id specified
+          // If parent_id is specified, only notify that specific user (handled below)
+          if (parentId == null) {
+            // Admin posting top-level comment to multiple users - notify all
+            repliedToUserId = assignedRows.map(r => r.user_id);
+          }
+          // If parent_id is provided, repliedToUserId will be set below
         }
         // If no assigned users, admin can still post top-level comment (parentIdVal stays null)
       } else {
@@ -155,14 +160,30 @@ router.post('/', async (req, res) => {
       io.emit('task:list');
     }
 
-    // When admin comments/replies, notify the assigned user
-    if (req.user.role === 'admin' && repliedToUserId) {
+    // When admin comments/replies, notify the assigned user(s)
+    if (req.user.role === 'admin') {
       const [taskRow] = await pool.query('SELECT title FROM tasks WHERE id = ?', [taskId]);
       const title = (taskRow[0]?.title || 'Task').slice(0, 80);
-      const message = parentIdVal
-        ? `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
-        : `💬 <b>Admin posted a comment on "${title}" task.</b>\n\nOpen the app to view.`;
-      notifyUserIds(pool, [repliedToUserId], message);
+      
+      let userIdsToNotify = [];
+      if (repliedToUserId) {
+        // Specific user to notify (from reply or single assigned user)
+        userIdsToNotify = Array.isArray(repliedToUserId) ? repliedToUserId : [repliedToUserId];
+      } else {
+        // Fallback: get all assigned users if repliedToUserId wasn't set
+        const [assignedRows] = await pool.query(
+          'SELECT user_id FROM task_assignments WHERE task_id = ?',
+          [taskId]
+        );
+        userIdsToNotify = assignedRows.map(r => r.user_id);
+      }
+      
+      if (userIdsToNotify.length > 0) {
+        const message = parentIdVal
+          ? `💬 <b>Admin replied to your comment on "${title}" task.</b>\n\nOpen the app to view.`
+          : `💬 <b>Admin posted a comment on "${title}" task.</b>\n\nOpen the app to view.`;
+        notifyUserIds(pool, userIdsToNotify, message);
+      }
     }
 
     res.status(201).json(comment[0]);

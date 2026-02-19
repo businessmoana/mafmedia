@@ -107,15 +107,8 @@ export async function notifyUserIds(pool, userIds, text) {
 
     if (!rows.length) return;
 
-    // Send to all users (simple parallel send)
     const promises = rows.map((row) => sendTelegramMessage(row.telegram_user_id, text));
-    const results = await Promise.allSettled(promises);
-    
-    const successCount = results.filter((r) => r.status === 'fulfilled' && r.value).length;
-    
-    if (successCount > 0) {
-      console.log(`[Telegram] Sent ${successCount} of ${rows.length} notification(s)`);
-    }
+    await Promise.allSettled(promises);
   } catch (err) {
     console.error('[Telegram] notifyUserIds error:', err.message || err);
   }
